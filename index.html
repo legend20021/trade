@@ -118,6 +118,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
 /* proj info */
 .proj-legend{position:absolute;bottom:25px;left:36px;z-index:5;background:var(--bg2);border:1px solid var(--brd2);border-radius:6px;padding:7px 10px;font-size:8px;color:var(--tx3);line-height:1.8;min-width:155px}
 .disc{padding:8px 12px;font-size:8px;color:var(--tx3);text-align:center;line-height:1.5;border-top:1px solid var(--brd)}
+/* method cards */
+.mcard{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--bg3);border:1px solid var(--brd);border-radius:5px;font-size:9px;transition:border-color .3s}
+.mcard .mc-icon{font-size:12px;flex-shrink:0;width:18px;text-align:center}
+.mcard .mc-body{flex:1;min-width:0}
+.mcard .mc-name{font-weight:600;font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2)}
+.mcard .mc-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;margin-top:1px}
+.mcard .mc-bar{height:3px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:2px;width:100%}
+.mcard .mc-fill{height:100%;border-radius:3px;transition:width .4s}
+.mcard .mc-dir{font-size:14px;font-weight:800;flex-shrink:0;width:16px;text-align:center}
+.mcard .mc-w{font-size:7px;color:var(--tx3);flex-shrink:0;width:24px;text-align:right}
 </style>
 </head>
 <body data-theme="dark">
@@ -189,18 +199,19 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
     <div class="sig-s" id="sigS">Descargando histórico de Binance…</div>
     <div class="sig-meter"><div class="sig-fill" id="sigFill" style="width:50%;background:var(--tx3)"></div></div>
     <div class="sig-grid">
-      <div class="sig-lv"><div class="lt">Entrada</div><div class="lv" id="slEntry">—</div></div>
-      <div class="sig-lv"><div class="lt">Stop Loss</div><div class="lv dn" id="slSL">—</div></div>
-      <div class="sig-lv"><div class="lt">TP1 (1.5R)</div><div class="lv up" id="slTP1">—</div></div>
-      <div class="sig-lv"><div class="lt">TP2 (3R)</div><div class="lv up" id="slTP2">—</div></div>
+      <div class="sig-lv" title="Precio sugerido para abrir la operación"><div class="lt">Entrada</div><div class="lv" id="slEntry">—</div></div>
+      <div class="sig-lv" title="Stop Loss: cierra la operación automáticamente si el precio va en tu contra. SIEMPRE usa stop loss."><div class="lt">Stop Loss</div><div class="lv dn" id="slSL">—</div></div>
+      <div class="sig-lv" title="Take Profit 1: primer objetivo de ganancia (1.5x tu riesgo). Puedes cerrar parcialmente aquí."><div class="lt">TP1 (1.5R)</div><div class="lv up" id="slTP1">—</div></div>
+      <div class="sig-lv" title="Take Profit 2: segundo objetivo (3x tu riesgo). Máxima ganancia esperada."><div class="lt">TP2 (3R)</div><div class="lv up" id="slTP2">—</div></div>
     </div>
   </div>
 
   <div class="stabs">
     <button class="stab on" onclick="sTab('analysis',this)">Análisis</button>
+    <button class="stab"    onclick="sTab('methods',this)">Métodos</button>
     <button class="stab"    onclick="sTab('prediction',this)">Predicción</button>
     <button class="stab"    onclick="sTab('entry',this)">Gestión</button>
-    <button class="stab"    onclick="sTab('ai',this)">IA News</button>
+    <button class="stab"    onclick="sTab('ai',this)">IA</button>
   </div>
 
   <!-- ANÁLISIS -->
@@ -208,14 +219,14 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
     <div class="pnl">
       <div class="pnl-t">Indicadores Técnicos</div>
       <div class="ind-grid">
-        <div class="ind"><div class="it">RSI 14</div><div class="iv" id="iRSI">—</div><div class="is" id="iRSIs">—</div></div>
-        <div class="ind"><div class="it">Stoch K/D</div><div class="iv" id="iStoch">—</div><div class="is" id="iStochs">—</div></div>
-        <div class="ind"><div class="it">MACD Hist</div><div class="iv" id="iMACD">—</div><div class="is" id="iMACDs">—</div></div>
-        <div class="ind"><div class="it">ADX 14</div><div class="iv" id="iADX">—</div><div class="is" id="iADXs">—</div></div>
-        <div class="ind"><div class="it">EMA 20</div><div class="iv" id="iE20">—</div><div class="is" id="iE20s">—</div></div>
-        <div class="ind"><div class="it">EMA 50</div><div class="iv" id="iE50">—</div><div class="is" id="iE50s">—</div></div>
-        <div class="ind"><div class="it">Bollinger %B</div><div class="iv" id="iBpct">—</div><div class="is" id="iBpcts">—</div></div>
-        <div class="ind"><div class="it">ATR 14</div><div class="iv" id="iATR">—</div><div class="is" id="iATRs" style="color:#8b5cf6;background:#8b5cf615;border:1px solid #8b5cf630">Volatilidad</div></div>
+        <div class="ind" title="RSI: Mide la fuerza del movimiento. Bajo 30 = sobreventa (posible compra). Sobre 70 = sobrecompra (posible venta)."><div class="it">RSI 14</div><div class="iv" id="iRSI">—</div><div class="is" id="iRSIs">—</div></div>
+        <div class="ind" title="Estocástico: Compara el cierre con el rango alto-bajo. K cruzando sobre D = alcista. K cruzando bajo D = bajista."><div class="it">Stoch K/D</div><div class="iv" id="iStoch">—</div><div class="is" id="iStochs">—</div></div>
+        <div class="ind" title="MACD Histograma: Muestra la diferencia entre momentum rápido y lento. Positivo = impulso alcista. Negativo = impulso bajista."><div class="it">MACD Hist</div><div class="iv" id="iMACD">—</div><div class="is" id="iMACDs">—</div></div>
+        <div class="ind" title="ADX: Mide la FUERZA de la tendencia (no dirección). Sobre 25 = tendencia fuerte. Bajo 15 = mercado lateral sin dirección."><div class="it">ADX 14</div><div class="iv" id="iADX">—</div><div class="is" id="iADXs">—</div></div>
+        <div class="ind" title="EMA 20: Promedio móvil rápido (20 velas). Si el precio está encima → tendencia alcista a corto plazo."><div class="it">EMA 20</div><div class="iv" id="iE20">—</div><div class="is" id="iE20s">—</div></div>
+        <div class="ind" title="EMA 50: Promedio móvil lento (50 velas). Si el precio está encima → tendencia alcista a mediano plazo. EMA20 > EMA50 = Golden Cross (muy alcista)."><div class="it">EMA 50</div><div class="iv" id="iE50">—</div><div class="is" id="iE50s">—</div></div>
+        <div class="ind" title="Bollinger %B: Posición del precio dentro de las bandas. 0% = en banda inferior (posible rebote). 100% = en banda superior (posible rechazo)."><div class="it">Bollinger %B</div><div class="iv" id="iBpct">—</div><div class="is" id="iBpcts">—</div></div>
+        <div class="ind" title="ATR: Rango promedio real (volatilidad). Número alto = movimientos grandes esperados. Útil para calcular Stop Loss y Take Profit."><div class="it">ATR 14</div><div class="iv" id="iATR">—</div><div class="is" id="iATRs" style="color:#8b5cf6;background:#8b5cf615;border:1px solid #8b5cf630">Volatilidad</div></div>
       </div>
     </div>
     <div class="pnl">
@@ -224,12 +235,45 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
     </div>
     <div class="pnl">
       <div class="pnl-t">Mercado</div>
-      <div class="mrow"><span class="l">Alto sesión</span><span class="v" id="sHi">—</span></div>
-      <div class="mrow"><span class="l">Bajo sesión</span><span class="v" id="sLo">—</span></div>
-      <div class="mrow"><span class="l">Soporte dinámico</span><span class="v up" id="sSup">—</span></div>
-      <div class="mrow"><span class="l">Resistencia dinámica</span><span class="v dn" id="sRes">—</span></div>
-      <div class="mrow"><span class="l">Tendencia general</span><span class="v" id="sTrend">—</span></div>
+      <div class="mrow" title="El precio más alto alcanzado en la sesión actual"><span class="l">Alto sesión</span><span class="v" id="sHi">—</span></div>
+      <div class="mrow" title="El precio más bajo alcanzado en la sesión actual"><span class="l">Bajo sesión</span><span class="v" id="sLo">—</span></div>
+      <div class="mrow" title="Zona donde el precio tiende a rebotar hacia arriba (basado en EMAs)"><span class="l">Soporte dinámico</span><span class="v up" id="sSup">—</span></div>
+      <div class="mrow" title="Zona donde el precio tiende a rebotar hacia abajo (basado en EMAs)"><span class="l">Resistencia dinámica</span><span class="v dn" id="sRes">—</span></div>
+      <div class="mrow" title="Dirección general del mercado basada en el cruce de EMAs"><span class="l">Tendencia general</span><span class="v" id="sTrend">—</span></div>
       <div class="mrow"><span class="l">Velas cargadas</span><span class="v" id="sCnt">0</span></div>
+    </div>
+  </div>
+
+  <!-- MÉTODOS DE PROYECCIÓN -->
+  <div id="tab-methods" class="hide">
+    <div class="pnl">
+      <div class="pnl-t" title="La proyección combina 8 métodos estadísticos. Cada uno analiza el mercado desde un ángulo diferente y se ponderan para dar una dirección más precisa.">8 Métodos de Proyección · Desglose en tiempo real</div>
+      <div id="methodsGrid" style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:9px;color:var(--tx3)">Esperando datos…</span>
+      </div>
+    </div>
+    <div class="pnl">
+      <div class="pnl-t">Resumen del Modelo</div>
+      <div id="modelSummary" style="font-size:9px;color:var(--tx2);line-height:1.6">
+        <span style="color:var(--tx3)">Cargando…</span>
+      </div>
+    </div>
+    <div class="pnl">
+      <div class="pnl-t">¿Cómo funciona?</div>
+      <div style="font-size:9px;color:var(--tx2);line-height:1.7">
+        <div style="margin-bottom:5px">Cada método analiza un aspecto diferente del mercado:</div>
+        <div title="Traza una línea recta sobre los últimos 20 precios de cierre y la extiende al futuro">📐 <b>Regresión lineal</b> — Extiende la tendencia reciente matemáticamente</div>
+        <div title="Multiplica los cambios recientes por pesos exponenciales (los más recientes pesan más)">⚡ <b>Momentum ponderado</b> — Mide la fuerza del impulso actual</div>
+        <div title="Cuando el precio se aleja mucho de la media, tiende a volver. Este método lo detecta">🧲 <b>Reversión a media</b> — Atracción hacia las EMAs 20/50</div>
+        <div title="RSI extremo (bajo 30 o sobre 70) indica que el precio puede corregir">📊 <b>Sesgo RSI</b> — Sobrecompra/venta predicen correcciones</div>
+        <div title="El histograma MACD muestra si el momentum está acelerando o desacelerando">📈 <b>Impulso MACD</b> — Aceleración o desaceleración de la tendencia</div>
+        <div title="Si el precio toca la banda superior/inferior de Bollinger, tiende a revertir">🎯 <b>Bollinger</b> — Rebote en bandas de volatilidad</div>
+        <div title="Las velas con más volumen tienen más peso. Mucho volumen bajista = presión de venta">📦 <b>Dirección por volumen</b> — ¿Quién domina, compradores o vendedores?</div>
+        <div title="Cuando el precio está cerca de un soporte tiende a rebotar; cerca de resistencia tiende a caer">🛡️ <b>Soporte/Resistencia</b> — Proximidad a zonas clave</div>
+        <div style="margin-top:6px;padding:6px;background:var(--bg3);border-radius:4px;border:1px solid var(--brd)">
+          💡 <b>Tip:</b> Los 8 métodos se promedian con pesos. Los primeros 3 (regresión, momentum, reversión) tienen más peso (62% del total). La confianza disminuye en velas más lejanas.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -277,13 +321,13 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
     <div class="pnl">
       <div class="pnl-t">Calculadora de Riesgo</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-        <div><label style="font-size:8px;color:var(--tx3);display:block;margin-bottom:2px">CAPITAL USD</label><input class="inp" id="rCap" type="number" value="1000" min="1"></div>
-        <div><label style="font-size:8px;color:var(--tx3);display:block;margin-bottom:2px">RIESGO %</label><input class="inp" id="rPct" type="number" value="1" step="0.5" min="0.1" max="5"></div>
+        <div><label style="font-size:8px;color:var(--tx3);display:block;margin-bottom:2px" title="Tu capital total de inversión. Solo arriesga un pequeño porcentaje por operación.">CAPITAL USD</label><input class="inp" id="rCap" type="number" value="1000" min="1" placeholder="Ej: 1000"></div>
+        <div><label style="font-size:8px;color:var(--tx3);display:block;margin-bottom:2px" title="Porcentaje de tu capital que estás dispuesto a perder. Profesionales usan 1-2%. NUNCA más del 5%.">RIESGO %</label><input class="inp" id="rPct" type="number" value="1" step="0.5" min="0.1" max="5" placeholder="1-2%"></div>
       </div>
       <div class="risk-grid">
-        <div class="rb"><div class="rl">Riesgo $</div><div class="rv" id="rAmt" style="color:var(--warn)">—</div></div>
-        <div class="rb"><div class="rl">SL pts</div><div class="rv" id="rSLp" style="color:var(--bear)">—</div></div>
-        <div class="rb"><div class="rl">Lote oz</div><div class="rv" id="rLot" style="color:var(--bull)">—</div></div>
+        <div class="rb" title="Dinero que perderías si se activa el Stop Loss"><div class="rl">Riesgo $</div><div class="rv" id="rAmt" style="color:var(--warn)">—</div></div>
+        <div class="rb" title="Distancia en puntos desde tu entrada hasta el Stop Loss"><div class="rl">SL pts</div><div class="rv" id="rSLp" style="color:var(--bear)">—</div></div>
+        <div class="rb" title="Tamaño de posición en onzas de oro. Esto determina cuánto comprar/vender."><div class="rl">Lote oz</div><div class="rv" id="rLot" style="color:var(--bull)">—</div></div>
       </div>
       <div class="mrow" style="margin-top:4px"><span class="l">Relación R:R</span><span class="v">1:3 (óptimo)</span></div>
       <div class="mrow"><span class="l">Beneficio máx TP2</span><span class="v up" id="rBen">—</span></div>
@@ -367,7 +411,7 @@ function schedDraw(){
 }
 function schedTA(){
   if(_taTimer)return;
-  _taTimer=setTimeout(()=>{_taTimer=null;runTA();buildProj();updPredTab();updVP();schedDraw();},_taInterval);
+  _taTimer=setTimeout(()=>{_taTimer=null;runTA();buildProj();updMethods();updPredTab();updVP();schedDraw();},_taInterval);
 }
 
 // ── CANVAS ─────────────────────────────────────────────────
@@ -461,7 +505,10 @@ cvs.addEventListener('mousemove',e=>{
 cvs.addEventListener('mouseup',e=>{
   G.isDrag=false;
   if(G.drawStart&&G.tool!=='pointer'){
-    G.drawings.push({type:G.tool,sx:G.drawStart.x,sy:G.drawStart.y,spy:G.drawStart.py,ex:e.offsetX,ey:e.offsetY,epy:y2p(e.offsetY)});
+    const dx=Math.abs(e.offsetX-G.drawStart.x),dy=Math.abs(e.offsetY-G.drawStart.y);
+    if(dx>5||dy>5){
+      G.drawings.push({type:G.tool,sx:G.drawStart.x,sy:G.drawStart.y,spy:G.drawStart.py,ex:e.offsetX,ey:e.offsetY,epy:y2p(e.offsetY)});
+    }
     G.drawStart=null;G.drawPrev=null;
   }
   schedDraw();
@@ -483,7 +530,7 @@ cvs.addEventListener('touchend',()=>{G.isDrag=false;});
 function resetView(){G.zoom=1;G.offsetX=0;schedDraw();}
 
 // ── COORD HELPERS ──────────────────────────────────────────
-const PAD={l:38,r:68,t:18,b:18};
+const PAD={l:38,r:82,t:18,b:18};
 function allC(){const a=[...G.candles];if(G.curBar?.open)a.push(G.curBar);return a;}
 function vp(){
   const all=allC(); if(!all.length) return null;
@@ -753,13 +800,20 @@ function drawUserShapes(all,fi,stride,bw,toY,toX,dk){
       ctx.fillRect(x1,y1,rw,rh);ctx.strokeRect(x1,y1,rw,rh);
     } else if(d.type==='fib'){
       const p1=d.spy,p2=d.epy;
-      [0,0.236,0.382,0.5,0.618,0.786,1].forEach(f=>{
+      const x1=Math.min(d.sx,d.ex),x2=Math.max(Math.max(d.sx,d.ex),x1+80);
+      const fibLevels=[[0,'0.0%'],[0.236,'23.6%'],[0.382,'38.2%'],[0.5,'50.0%'],[0.618,'61.8% ★'],[0.786,'78.6%'],[1,'100%']];
+      // shaded zone between 38.2% and 61.8%
+      const y382=toY(p1+(p2-p1)*0.382), y618=toY(p1+(p2-p1)*0.618);
+      ctx.fillStyle=dk?'#f0b42908':'#85640408';
+      ctx.fillRect(x1,Math.min(y382,y618),x2-x1,Math.abs(y618-y382));
+      fibLevels.forEach(([f,label])=>{
         const py=p1+(p2-p1)*f, y=toY(py);
-        ctx.strokeStyle=f===0.618?(dk?'#f0b429bb':'#856404bb'):(dk?'#f0b42940':'#85640440');
-        ctx.lineWidth=f===0.618?1.5:.8;ctx.setLineDash([3,3]);
-        ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();ctx.setLineDash([]);
-        ctx.fillStyle=dk?'#f0b429':'#856404';ctx.font='7px JetBrains Mono,monospace';ctx.textAlign='left';
-        ctx.fillText(`${(f*100).toFixed(1)}% $${py.toFixed(P)}`,PAD.l+2,y-2);
+        const isGolden=f===0.618, isMid=f===0.5;
+        ctx.strokeStyle=isGolden?(dk?'#f0b429cc':'#856404cc'):isMid?(dk?'#f0b42980':'#85640480'):(dk?'#f0b42945':'#85640445');
+        ctx.lineWidth=isGolden?1.8:isMid?1.2:.7;ctx.setLineDash(isGolden?[]:[3,3]);
+        ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.setLineDash([]);
+        ctx.fillStyle=dk?'#f0b429':'#856404';ctx.font=(isGolden?'bold ':'')+'7px JetBrains Mono,monospace';ctx.textAlign='left';
+        ctx.fillText(`${label} $${py.toFixed(P)}`,x1+3,y-3);
       });
     }
   });
@@ -769,6 +823,19 @@ function drawPreview(dk){
   ctx.strokeStyle=dk?'#58a6ff90':'#0969da90';ctx.lineWidth=1;ctx.setLineDash([3,3]);
   if(G.tool==='line'){ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(e.x,e.y);ctx.stroke();}
   else if(G.tool==='rect'){const x1=Math.min(s.x,e.x),y1=Math.min(s.y,e.y),rw=Math.abs(e.x-s.x),rh=Math.abs(e.y-s.y);ctx.strokeRect(x1,y1,rw,rh);}
+  else if(G.tool==='fib'){
+    const p1=s.py,p2=e.py;
+    const x1f=Math.min(s.x,e.x),x2f=Math.max(s.x,e.x);
+    [0,0.236,0.382,0.5,0.618,0.786,1].forEach(f=>{
+      const py=p1+(p2-p1)*f,y=toY(py);
+      ctx.strokeStyle=f===0.618?(dk?'#f0b42990':'#85640490'):(dk?'#f0b42940':'#85640440');
+      ctx.lineWidth=f===0.618?1.5:.6;
+      ctx.beginPath();ctx.moveTo(x1f,y);ctx.lineTo(x2f,y);ctx.stroke();
+    });
+    // connect start to end
+    ctx.strokeStyle=dk?'#f0b42960':'#85640460';ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(e.x,e.y);ctx.stroke();
+  }
   ctx.setLineDash([]);
 }
 
@@ -860,7 +927,7 @@ function loadData(){
         G.sLo=Math.min(...G.candles.map(c=>c.low));
         updHdr(l.close);
       }
-      schedDraw();runTA();buildProj();updPredTab();updVP();
+      schedDraw();runTA();buildProj();updMethods();updPredTab();updVP();
     })
     .catch(()=>useFallback());
   connectWS(cfg);
@@ -895,7 +962,7 @@ function useFallback(){
   G.sHi=Math.max(...G.candles.map(c=>c.high));
   G.sLo=Math.min(...G.candles.map(c=>c.low));
   updHdr(px);
-  schedDraw();runTA();buildProj();updPredTab();updVP();
+  schedDraw();runTA();buildProj();updMethods();updPredTab();updVP();
   setInterval(()=>{const chg=(Math.random()-.48)*4; tick(G.lastPx+chg,G.lastPx,G.lastPx+chg,G.lastPx+chg-1,Math.random()*50+10,Math.floor(Date.now()/1000));},2000);
 }
 
@@ -909,7 +976,7 @@ function tick(close,open,high,low,vol,time){
     G.curBar={time:bt,open:close,high:close,low:close,close,volume:vol};
     // New bar: run TA immediately
     if(_taTimer){clearTimeout(_taTimer);_taTimer=null;}
-    runTA();buildProj();updPredTab();updVP();
+    runTA();buildProj();updMethods();updPredTab();updVP();
   } else {
     G.curBar.high=Math.max(G.curBar.high,high);
     G.curBar.low=Math.min(G.curBar.low,low);
@@ -1180,6 +1247,20 @@ function buildProj(){
   const meanRet=returns.reduce((a,b)=>a+b,0)/(returns.length||1);
   const stdRet=Math.sqrt(returns.reduce((a,b)=>a+(b-meanRet)**2,0)/(returns.length||1));
 
+  // ── Store method details for Methods tab
+  const regPred1=regIntercept+regSlope*(regN+1);
+  const regDelta1=regPred1-last.close;
+  G.methodDetails=[
+    {name:'Regresión Lineal',icon:'📐',value:regDelta1,weight:0.22,desc:'Tendencia matemática de los últimos 20 cierres'},
+    {name:'Momentum Ponderado',icon:'⚡',value:weightedMom,weight:0.22,desc:'Impulso reciente con peso exponencial decreciente'},
+    {name:'Reversión a Media',icon:'🧲',value:revForce*atr,weight:0.18,desc:'Atracción del precio hacia las EMAs 20 y 50'},
+    {name:'Sesgo RSI',icon:'📊',value:rsiBias,weight:0.10,desc:'RSI '+rsi.toFixed(0)+' — '+(rsi<30?'Sobreventa fuerte':rsi<40?'Cerca de sobreventa':rsi>70?'Sobrecompra fuerte':rsi>60?'Cerca de sobrecompra':'Zona neutral')},
+    {name:'Impulso MACD',icon:'📈',value:macdBias,weight:0.10,desc:'Histograma '+(macd?macd.hist.toFixed(2):'?')+' — '+(macd?(macd.hist>0?'Impulso alcista':'Impulso bajista'):'Sin datos')},
+    {name:'Bollinger Bands',icon:'🎯',value:bollBias,weight:0.06,desc:boll?'%B='+(((last.close-boll.lower)/(boll.upper-boll.lower))*100).toFixed(0)+'% — '+((last.close-boll.lower)/(boll.upper-boll.lower)<.2?'Cerca de banda inferior':'')+''+((last.close-boll.lower)/(boll.upper-boll.lower)>.8?'Cerca de banda superior':'')+''+((last.close-boll.lower)/(boll.upper-boll.lower)>=.2&&(last.close-boll.lower)/(boll.upper-boll.lower)<=.8?'Dentro de bandas':''):'Sin datos Bollinger'},
+    {name:'Volumen Dirección',icon:'📦',value:volBias,weight:0.06,desc:'Ratio compra/venta: '+((vwDir/(vwTotal||1))*100).toFixed(0)+'% — '+(vwDir>0?'Dominan compradores':'Dominan vendedores')},
+    {name:'Soporte/Resistencia',icon:'🛡️',value:srBias,weight:0.06,desc:srBias>0?'Cerca de soporte — posible rebote alcista':srBias<0?'Cerca de resistencia — posible rechazo':'Zona libre entre S/R'},
+  ];
+
   // ── Combine 8 methods into ensemble
   G.projCandles=[];
   let px=last.close;
@@ -1270,6 +1351,55 @@ function updVP(){
   });
   const pocP=lo+poc*bs;
   document.getElementById('vpLevels').innerHTML=`<div class="mrow"><span class="l" style="color:var(--gold)">POC (mayor volumen)</span><span class="v" style="color:var(--gold);font-family:'JetBrains Mono',monospace">$${pocP.toFixed(P)}</span></div>`;
+}
+
+function updMethods(){
+  const md=G.methodDetails; if(!md||!md.length)return;
+  const maxAbs=Math.max(...md.map(m=>Math.abs(m.value)),0.01);
+  let bullCount=0,bearCount=0,totalWeightedBull=0,totalWeightedBear=0;
+  let html='';
+  md.forEach(m=>{
+    const isBull=m.value>=0;
+    if(isBull){bullCount++;totalWeightedBull+=m.weight;}else{bearCount++;totalWeightedBear+=m.weight;}
+    const col=isBull?'var(--bull)':'var(--bear)';
+    const pct=Math.min(100,Math.abs(m.value)/maxAbs*100);
+    html+=`<div class="mcard" style="border-color:${col}20" title="${m.desc}">
+      <div class="mc-icon">${m.icon}</div>
+      <div class="mc-body">
+        <div class="mc-name">${m.name}</div>
+        <div class="mc-val" style="color:${col}">${isBull?'▲':'▼'} ${m.value>=0?'+':''}${m.value.toFixed(3)}</div>
+        <div class="mc-bar"><div class="mc-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>
+      <div class="mc-dir" style="color:${col}">${isBull?'↑':'↓'}</div>
+      <div class="mc-w">${(m.weight*100).toFixed(0)}%</div>
+    </div>`;
+  });
+  document.getElementById('methodsGrid').innerHTML=html;
+
+  // Summary
+  const netBias=md.reduce((s,m)=>s+m.value*m.weight,0);
+  const dir=netBias>=0;
+  const consensus=Math.max(bullCount,bearCount)/md.length*100;
+  const sumEl=document.getElementById('modelSummary');
+  sumEl.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+      <span style="font-weight:700;font-size:11px;color:${dir?'var(--bull)':'var(--bear)'}">${dir?'▲ SESGO ALCISTA':'▼ SESGO BAJISTA'}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${dir?'var(--bull)':'var(--bear)'}">${netBias>=0?'+':''}${netBias.toFixed(3)}</span>
+    </div>
+    <div style="display:flex;gap:3px;margin-bottom:5px">
+      <div style="flex:${bullCount};height:6px;background:var(--bull);border-radius:3px 0 0 3px;transition:flex .4s"></div>
+      <div style="flex:${bearCount};height:6px;background:var(--bear);border-radius:0 3px 3px 0;transition:flex .4s"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:8px;margin-bottom:4px">
+      <span style="color:var(--bull)">▲ ${bullCount} métodos alcistas (${(totalWeightedBull*100).toFixed(0)}% peso)</span>
+      <span style="color:var(--bear)">▼ ${bearCount} métodos bajistas (${(totalWeightedBear*100).toFixed(0)}% peso)</span>
+    </div>
+    <div style="font-size:8px;color:var(--tx3);margin-top:3px">
+      Consenso: <b style="color:var(--tx)">${consensus.toFixed(0)}%</b> de métodos apuntan ${dir?'al alza':'a la baja'}
+    </div>
+    <div style="font-size:8px;color:var(--tx3);margin-top:2px" title="La confianza se reduce para velas más lejanas porque la incertidumbre aumenta con el tiempo">
+      💡 <b>Confianza:</b> ← Alta (85%) ··· Baja (15%) → en velas alejadas
+    </div>`;
 }
 
 // ── MATH ───────────────────────────────────────────────────
