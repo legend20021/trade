@@ -116,7 +116,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
 .toast{padding:9px 13px;border-radius:6px;font-size:10px;font-weight:600;background:var(--bg2);border:1px solid var(--brd2);box-shadow:0 4px 16px rgba(0,0,0,.5);animation:slideIn .3s ease;max-width:250px;line-height:1.5;border-left-width:3px}
 @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
 /* proj info */
-.proj-legend{position:absolute;bottom:25px;right:8px;z-index:5;background:var(--bg2);border:1px solid var(--brd2);border-radius:4px;padding:5px 8px;font-size:8px;color:var(--tx3);line-height:1.8}
+.proj-legend{position:absolute;bottom:25px;left:36px;z-index:5;background:var(--bg2);border:1px solid var(--brd2);border-radius:6px;padding:7px 10px;font-size:8px;color:var(--tx3);line-height:1.8;min-width:155px}
 .disc{padding:8px 12px;font-size:8px;color:var(--tx3);text-align:center;line-height:1.5;border-top:1px solid var(--brd)}
 </style>
 </head>
@@ -174,9 +174,11 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
   <div class="xhinfo" id="xhInfo"></div>
   <div class="ctip"   id="cTip"></div>
   <div class="proj-legend" id="projLeg">
-    <div>— — Proyección media</div>
+    <div style="font-weight:700;margin-bottom:2px;color:var(--tx);font-size:9px">Proyección Estadística</div>
+    <div style="color:var(--accent)">— — Media (8 métodos)</div>
     <div style="color:var(--bull)">▲ Escenario alcista</div>
     <div style="color:var(--bear)">▼ Escenario bajista</div>
+    <div style="border-top:1px solid var(--brd);margin-top:3px;padding-top:3px;font-family:'JetBrains Mono',monospace;font-size:8px" id="projTarget"></div>
   </div>
 </main>
 
@@ -234,7 +236,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',s
   <!-- PREDICCIÓN -->
   <div id="tab-prediction" class="hide">
     <div class="pnl">
-      <div class="pnl-t">Proyección estadística · próximas 5 velas</div>
+      <div class="pnl-t">Proyección estadística · próximas 8 velas · 8 métodos</div>
       <div id="predRows"><span style="font-size:9px;color:var(--tx3)">Ejecutando modelo…</span></div>
     </div>
     <div class="pnl">
@@ -356,6 +358,17 @@ const TF = {
   '1d': {int:'1d',ms:86400,lim:300},
 };
 const SYM='PAXGUSDT', P=2;
+let _wsId=0;
+
+// ── RENDER SCHEDULER (rAF batching) ───────────────────────
+let _dirty=false, _taTimer=null, _taInterval=700;
+function schedDraw(){
+  if(!_dirty){_dirty=true;requestAnimationFrame(()=>{_dirty=false;draw();miniDraw();});}
+}
+function schedTA(){
+  if(_taTimer)return;
+  _taTimer=setTimeout(()=>{_taTimer=null;runTA();buildProj();updPredTab();updVP();schedDraw();},_taInterval);
+}
 
 // ── CANVAS ─────────────────────────────────────────────────
 const cvs=document.getElementById('mainCanvas'),
@@ -379,7 +392,7 @@ function resize(){
     c.style.width=pr.width+'px'; c.style.height='72px';
     c.getContext('2d').setTransform(dpr,0,0,dpr,0,0);
   });
-  draw(); miniDraw();
+  schedDraw();
 }
 window.addEventListener('resize',resize);
 
@@ -388,7 +401,7 @@ function toggleTheme(){
   const t=document.body.dataset.theme==='dark'?'light':'dark';
   document.body.dataset.theme=t;
   document.getElementById('btnTheme').textContent=t==='dark'?'☀':'🌑';
-  draw(); miniDraw();
+  schedDraw();
 }
 function dark(){return document.body.dataset.theme==='dark';}
 
@@ -400,7 +413,7 @@ function tog(key,id){
     document.getElementById('bProj').style.display=G[key]?'':'none';
     document.getElementById('projLeg').style.display=G[key]?'':'none';
   }
-  draw();
+  schedDraw();
 }
 
 // ── TIMEFRAME ──────────────────────────────────────────────
@@ -422,7 +435,7 @@ function setTool(t){
   const map={pointer:'dPtr',line:'dLine',hline:'dHL',rect:'dRect',fib:'dFib'};
   if(map[t]) document.getElementById(map[t]).classList.add('on');
 }
-function clearDrawings(){G.drawings=[];draw();}
+function clearDrawings(){G.drawings=[];schedDraw();}
 
 // ── ZOOM & PAN ─────────────────────────────────────────────
 cvs.addEventListener('wheel',e=>{
@@ -431,7 +444,8 @@ cvs.addEventListener('wheel',e=>{
   const old=G.zoom;
   G.zoom=Math.max(.15,Math.min(10,G.zoom*f));
   G.offsetX=e.offsetX-(e.offsetX-G.offsetX)*(G.zoom/old);
-  draw();
+  clamp();
+  schedDraw();
 },{passive:false});
 
 cvs.addEventListener('mousedown',e=>{
@@ -442,7 +456,7 @@ cvs.addEventListener('mousemove',e=>{
   G.mouseX=e.offsetX; G.mouseY=e.offsetY;
   if(G.isDrag){G.offsetX=G.dragOfs+(e.clientX-G.dragX);clamp();}
   if(G.drawStart) G.drawPrev={x:e.offsetX,y:e.offsetY,py:y2p(e.offsetY)};
-  draw();
+  schedDraw();
 });
 cvs.addEventListener('mouseup',e=>{
   G.isDrag=false;
@@ -450,9 +464,9 @@ cvs.addEventListener('mouseup',e=>{
     G.drawings.push({type:G.tool,sx:G.drawStart.x,sy:G.drawStart.y,spy:G.drawStart.py,ex:e.offsetX,ey:e.offsetY,epy:y2p(e.offsetY)});
     G.drawStart=null;G.drawPrev=null;
   }
-  draw();
+  schedDraw();
 });
-cvs.addEventListener('mouseleave',()=>{G.mouseX=-1;G.mouseY=-1;document.getElementById('cTip').style.display='none';draw();});
+cvs.addEventListener('mouseleave',()=>{G.mouseX=-1;G.mouseY=-1;document.getElementById('cTip').style.display='none';schedDraw();});
 
 // touch
 let t0dist=0;
@@ -461,12 +475,12 @@ cvs.addEventListener('touchstart',e=>{
   if(e.touches.length===2){t0dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
 },{passive:true});
 cvs.addEventListener('touchmove',e=>{
-  if(e.touches.length===1&&G.isDrag){G.offsetX=G.dragOfs+(e.touches[0].clientX-G.dragX);clamp();draw();}
-  if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);G.zoom=Math.max(.15,Math.min(10,G.zoom*(d/t0dist)));t0dist=d;draw();}
+  if(e.touches.length===1&&G.isDrag){G.offsetX=G.dragOfs+(e.touches[0].clientX-G.dragX);clamp();schedDraw();}
+  if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);G.zoom=Math.max(.15,Math.min(10,G.zoom*(d/t0dist)));t0dist=d;schedDraw();}
 },{passive:true});
 cvs.addEventListener('touchend',()=>{G.isDrag=false;});
 
-function resetView(){G.zoom=1;G.offsetX=0;draw();}
+function resetView(){G.zoom=1;G.offsetX=0;schedDraw();}
 
 // ── COORD HELPERS ──────────────────────────────────────────
 const PAD={l:38,r:68,t:18,b:18};
@@ -485,7 +499,7 @@ function vp(){
   let hi=-Infinity,lo=Infinity;
   vis.forEach(c=>{hi=Math.max(hi,c.high);lo=Math.min(lo,c.low);});
   if(G.showBoll&&all.length>=20){const b=xBoll(all.map(c=>c.close),20);if(b){hi=Math.max(hi,b.upper);lo=Math.min(lo,b.lower);}}
-  if(G.showProj&&G.projCandles.length){G.projCandles.forEach(c=>{hi=Math.max(hi,c.high);lo=Math.min(lo,c.low);});}
+  if(G.showProj&&G.projCandles.length){G.projCandles.forEach(c=>{hi=Math.max(hi,c.high,c.bullT);lo=Math.min(lo,c.low,c.bearT);});}
   const rng=hi-lo||1;
   const toY=v=>PAD.t+(1-(v-lo)/rng)*pH;
   const toX=i=>PAD.l+(i-fi)*stride+ofs+fi*stride;
@@ -642,31 +656,82 @@ function drawEMA(all,vis,fi,stride,bw,period,col,toY,toX){
 
 function drawProj(all,fi,stride,bw,toY,toX,dk){
   const pc=G.projCandles;
-  const sx=toX(all.length); // x right after last real candle
+  const sx=toX(all.length);
+  const lastClose=all[all.length-1].close;
+
+  // ── Confidence band (filled gradient area)
+  ctx.beginPath();
+  ctx.moveTo(sx-stride/2,toY(lastClose));
+  pc.forEach((c,ii)=>{ctx.lineTo(sx+ii*stride+bw/2,toY(c.bullT));});
+  for(let ii=pc.length-1;ii>=0;ii--)ctx.lineTo(sx+ii*stride+bw/2,toY(pc[ii].bearT));
+  ctx.lineTo(sx-stride/2,toY(lastClose));
+  ctx.closePath();
+  const grd=ctx.createLinearGradient(0,toY(pc[0].bullT),0,toY(pc[0].bearT));
+  grd.addColorStop(0,dk?'#26a64110':'#1a7f3710');
+  grd.addColorStop(0.5,dk?'#1f6feb0c':'#0969da08');
+  grd.addColorStop(1,dk?'#da363310':'#cf222e10');
+  ctx.fillStyle=grd;
+  ctx.fill();
+
+  // ── Bull scenario line
+  ctx.strokeStyle=dk?'#26a64170':'#1a7f3770';
+  ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  ctx.moveTo(sx-stride/2,toY(lastClose));
+  pc.forEach((c,ii)=>{ctx.lineTo(sx+ii*stride+bw/2,toY(c.bullT));});
+  ctx.stroke();
+
+  // ── Bear scenario line
+  ctx.strokeStyle=dk?'#da363370':'#cf222e70';
+  ctx.beginPath();
+  ctx.moveTo(sx-stride/2,toY(lastClose));
+  pc.forEach((c,ii)=>{ctx.lineTo(sx+ii*stride+bw/2,toY(c.bearT));});
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Median projection (dashed blue)
+  ctx.strokeStyle=dk?'#58a6ff':'#0969da';
+  ctx.lineWidth=1.8;ctx.setLineDash([5,3]);
+  ctx.beginPath();
+  ctx.moveTo(sx-stride/2,toY(lastClose));
+  pc.forEach((c,ii)=>{ctx.lineTo(sx+ii*stride+bw/2,toY(c.close));});
+  ctx.stroke();ctx.setLineDash([]);
+
+  // ── Projection candle bodies
   pc.forEach((c,ii)=>{
     const x=sx+ii*stride+bw/2;
-    // uncertainty body
-    ctx.fillStyle=dk?'#1f6feb0a':'#1f6feb07';
     const yO=toY(c.open),yC=toY(c.close),bh=Math.max(1,Math.abs(yO-yC));
-    ctx.fillStyle=dk?'#1f6feb55':'#0969da55';
-    ctx.strokeStyle=dk?'#58a6ff':'#0969da';
-    ctx.lineWidth=1;
+    // wick
+    ctx.strokeStyle=dk?'#58a6ff80':'#0969da80';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(x,toY(c.high));ctx.lineTo(x,toY(c.low));ctx.stroke();
-    ctx.strokeRect(x-bw/2,Math.min(yO,yC),bw,bh);
+    // body
+    const alpha=Math.max(15,50-ii*4);
+    ctx.fillStyle=dk?`rgba(31,111,235,${alpha/100})`:`rgba(9,105,218,${alpha/100-0.1})`;
+    ctx.strokeStyle=dk?'#58a6ff':'#0969da';
     ctx.fillRect(x-bw/2,Math.min(yO,yC),bw,bh);
-    // bull/bear scenario dashes
-    ctx.setLineDash([1,3]);ctx.lineWidth=.8;
-    ctx.strokeStyle=dk?'#26a64150':'#1a7f3750';
-    ctx.beginPath();ctx.moveTo(x-bw/2,toY(c.bullT));ctx.lineTo(x+bw/2+stride,toY(c.bullT));ctx.stroke();
-    ctx.strokeStyle=dk?'#da363350':'#cf222e50';
-    ctx.beginPath();ctx.moveTo(x-bw/2,toY(c.bearT));ctx.lineTo(x+bw/2+stride,toY(c.bearT));ctx.stroke();
-    ctx.setLineDash([]);
-    if(ii===0){
+    ctx.strokeRect(x-bw/2,Math.min(yO,yC),bw,bh);
+    // confidence label (first and last)
+    if(ii===0||ii===pc.length-1){
       ctx.fillStyle=dk?'#58a6ff':'#0969da';
-      ctx.font='8px JetBrains Mono,monospace';ctx.textAlign='left';
-      ctx.fillText('PROJ →',x+bw/2+3,toY(c.close)-4);
+      ctx.font='7px JetBrains Mono,monospace';ctx.textAlign='center';
+      ctx.fillText(c.conf+'%',x,toY(c.high)-5);
     }
   });
+
+  // ── PROJ label
+  ctx.fillStyle=dk?'#58a6ff':'#0969da';
+  ctx.font='bold 8px JetBrains Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('PROJ (8 métodos) →',sx+bw/2+3,toY(pc[0].close)-8);
+
+  // ── Target price labels at end
+  const lp=pc[pc.length-1], lx=sx+(pc.length-1)*stride+bw+2;
+  ctx.font='bold 7px JetBrains Mono,monospace';ctx.textAlign='left';
+  ctx.fillStyle=dk?'#26a641':'#1a7f37';
+  ctx.fillText('▲ $'+lp.bullT.toFixed(P),lx,toY(lp.bullT)+3);
+  ctx.fillStyle=dk?'#58a6ff':'#0969da';
+  ctx.fillText('● $'+lp.close.toFixed(P),lx,toY(lp.close)+3);
+  ctx.fillStyle=dk?'#da3633':'#cf222e';
+  ctx.fillText('▼ $'+lp.bearT.toFixed(P),lx,toY(lp.bearT)+3);
 }
 
 function drawUserShapes(all,fi,stride,bw,toY,toX,dk){
@@ -795,7 +860,7 @@ function loadData(){
         G.sLo=Math.min(...G.candles.map(c=>c.low));
         updHdr(l.close);
       }
-      draw();miniDraw();runTA();buildProj();updPredTab();updVP();
+      schedDraw();runTA();buildProj();updPredTab();updVP();
     })
     .catch(()=>useFallback());
   connectWS(cfg);
@@ -803,11 +868,12 @@ function loadData(){
 
 function connectWS(cfg){
   if(G.ws){try{G.ws.close();}catch(e){}G.ws=null;}
+  const myId=++_wsId;
   try{
     G.ws=new WebSocket(`wss://stream.binance.com:9443/ws/${SYM.toLowerCase()}@kline_${cfg.int}`);
-    G.ws.onmessage=e=>{const d=JSON.parse(e.data).k; tick(+d.c,+d.o,+d.h,+d.l,+d.v,Math.floor(+d.t/1000));};
+    G.ws.onmessage=e=>{if(myId!==_wsId)return;const d=JSON.parse(e.data).k; tick(+d.c,+d.o,+d.h,+d.l,+d.v,Math.floor(+d.t/1000));};
     G.ws.onerror=()=>{if(G.ws)G.ws.close();};
-    G.ws.onclose=()=>{setTimeout(()=>connectWS(cfg),5000);};
+    G.ws.onclose=()=>{if(myId===_wsId)setTimeout(()=>connectWS(cfg),3000);};
   }catch(e){}
 }
 
@@ -829,7 +895,7 @@ function useFallback(){
   G.sHi=Math.max(...G.candles.map(c=>c.high));
   G.sLo=Math.min(...G.candles.map(c=>c.low));
   updHdr(px);
-  draw();miniDraw();runTA();buildProj();updPredTab();updVP();
+  schedDraw();runTA();buildProj();updPredTab();updVP();
   setInterval(()=>{const chg=(Math.random()-.48)*4; tick(G.lastPx+chg,G.lastPx,G.lastPx+chg,G.lastPx+chg-1,Math.random()*50+10,Math.floor(Date.now()/1000));},2000);
 }
 
@@ -841,6 +907,8 @@ function tick(close,open,high,low,vol,time){
     G.candles.push({...G.curBar});
     if(G.candles.length>TF[G.tf].lim) G.candles.shift();
     G.curBar={time:bt,open:close,high:close,low:close,close,volume:vol};
+    // New bar: run TA immediately
+    if(_taTimer){clearTimeout(_taTimer);_taTimer=null;}
     runTA();buildProj();updPredTab();updVP();
   } else {
     G.curBar.high=Math.max(G.curBar.high,high);
@@ -868,7 +936,7 @@ function tick(close,open,high,low,vol,time){
     if(log.children.length>8) log.lastElementChild.remove();
   }
   G.prevClose=G.lastPx||close; G.lastPx=close;
-  updHdr(close); draw();
+  updHdr(close); schedDraw(); schedTA();
 }
 
 function updHdr(p){
@@ -1031,7 +1099,7 @@ function runTA(){
       document.getElementById('mConf').textContent=(buy/(total)*100).toFixed(0)+'%';
     }
   }
-  miniDraw();
+  schedDraw();
 }
 
 function updEntryPlans(px,atr,dir){
@@ -1061,24 +1129,86 @@ function buildProj(){
   const rsi=xRSI(cl,14)||50;
   const e20=xEMA(cl,20)||last.close;
   const e50=xEMA(cl,Math.min(50,cl.length))||last.close;
-  // momentum from last 5 bars
-  const l5=cn.slice(-5);
-  const mom=(l5[4].close-l5[0].open)/(atr*5);
-  // mean reversion coefficient
+  const macd=xMACD(cl);
+  const boll=xBoll(cl,20);
+
+  // ── Method 1: Linear Regression (last 20 bars)
+  const regN=Math.min(20,cl.length);
+  const regCl=cl.slice(-regN);
+  let sumX=0,sumY=0,sumXY=0,sumX2=0;
+  for(let i=0;i<regN;i++){sumX+=i;sumY+=regCl[i];sumXY+=i*regCl[i];sumX2+=i*i;}
+  const regSlope=(regN*sumXY-sumX*sumY)/(regN*sumX2-sumX*sumX)||0;
+  const regIntercept=(sumY-regSlope*sumX)/regN;
+
+  // ── Method 2: Weighted Momentum (exp decay)
+  const momN=Math.min(10,cn.length-1);
+  let momSum=0,momW=0;
+  for(let i=0;i<momN;i++){const w=Math.pow(0.82,i);momSum+=(cn[cn.length-1-i].close-cn[cn.length-2-i].close)*w;momW+=w;}
+  const weightedMom=momSum/(momW||1);
+
+  // ── Method 3: Mean Reversion to EMA20/50
+  const distE20=(e20-last.close)/atr;
+  const distE50=(e50-last.close)/atr;
+  const revForce=distE20*0.25+distE50*0.15;
+
+  // ── Method 4: RSI bias
+  const rsiBias=(50-rsi)/100*atr*0.3;
+
+  // ── Method 5: MACD momentum
+  const macdBias=macd?(macd.hist/atr)*atr*0.15:0;
+
+  // ── Method 6: Bollinger reversion
+  let bollBias=0;
+  if(boll){const pB=(last.close-boll.lower)/(boll.upper-boll.lower);if(pB>.9)bollBias=-atr*0.2*(pB-.5);else if(pB<.1)bollBias=atr*0.2*(.5-pB);}
+
+  // ── Method 7: Volume-weighted direction
+  const vn=Math.min(5,cn.length-1);
+  let vwDir=0,vwTotal=0;
+  for(let i=0;i<vn;i++){const c=cn[cn.length-1-i];vwDir+=(c.close>=c.open?1:-1)*(c.volume||1);vwTotal+=(c.volume||1);}
+  const volBias=(vwDir/(vwTotal||1))*atr*0.1;
+
+  // ── Method 8: Support/Resistance proximity
+  let srBias=0;
+  if(e20&&e50){const sup=Math.min(e20,e50),res=Math.max(e20,e50);
+    if(last.close-sup<atr*0.5)srBias=atr*0.15; // near support → bounce
+    if(res-last.close<atr*0.5)srBias=-atr*0.15; // near resistance → reject
+  }
+
+  // ── Historical σ of returns
+  const returns=[];
+  for(let i=1;i<Math.min(30,cl.length);i++)returns.push((cl[cl.length-i]-cl[cl.length-i-1])/cl[cl.length-i-1]);
+  const meanRet=returns.reduce((a,b)=>a+b,0)/(returns.length||1);
+  const stdRet=Math.sqrt(returns.reduce((a,b)=>a+(b-meanRet)**2,0)/(returns.length||1));
+
+  // ── Combine 8 methods into ensemble
   G.projCandles=[];
   let px=last.close;
-  for(let i=0;i<5;i++){
-    const rev=(e20-px)/(atr*4)*0.35;
-    const decay=0.75**i;
-    const bias=mom*decay*0.6+rev+(50-rsi)/50*0.15;
+  for(let i=0;i<8;i++){
+    const t=i+1;
+    const decay=Math.pow(0.80,i);
+    const regPred=regIntercept+regSlope*(regN+t);
+    const regDelta=regPred-px;
+    const combined=(
+      regDelta*0.22+
+      weightedMom*decay*0.22+
+      revForce*atr*decay*0.18+
+      rsiBias*decay*0.10+
+      macdBias*decay*0.10+
+      bollBias*decay*0.06+
+      volBias*decay*0.06+
+      srBias*decay*0.06
+    );
     const open=px;
-    const close=px+bias*atr+(Math.random()-.48)*atr*0.4;
-    const rng=atr*(0.5+Math.random()*0.5);
-    const high=Math.max(open,close)+rng*0.35;
-    const low=Math.min(open,close)-rng*0.35;
-    const bullT=close+atr*1.1;
-    const bearT=close-atr*1.1;
-    G.projCandles.push({open,high,low,close,bullT,bearT,conf:Math.max(30,72-i*12)});
+    const close=px+combined;
+    const sigma=stdRet*last.close*Math.sqrt(t);
+    const atrSpread=atr*(0.4+0.12*t);
+    const spread=Math.max(sigma,atrSpread);
+    const high=Math.max(open,close)+spread*0.4;
+    const low=Math.min(open,close)-spread*0.4;
+    const bullT=close+spread*1.2;
+    const bearT=close-spread*1.2;
+    const conf=Math.max(15,Math.round(85-t*8));
+    G.projCandles.push({open,high,low,close,bullT,bearT,conf,spread});
     px=close;
   }
 }
@@ -1098,6 +1228,19 @@ function updPredTab(){
     </div>`;
   });
   document.getElementById('predRows').innerHTML=html;
+
+  // ── Update projection legend with dynamic target info
+  const pt=document.getElementById('projTarget');
+  if(pt&&pc.length){
+    const last=pc[pc.length-1], first=pc[0];
+    const dir=last.close>=G.lastPx;
+    const delta=last.close-G.lastPx;
+    pt.innerHTML=`<div style="color:${dir?'var(--bull)':'var(--bear)'};font-weight:600">${dir?'▲':'▼'} ${delta>=0?'+':''}${delta.toFixed(P)}</div>
+      <div>Obj: <b>$${last.close.toFixed(P)}</b></div>
+      <div style="color:var(--bull)">▲ $${last.bullT.toFixed(P)}</div>
+      <div style="color:var(--bear)">▼ $${last.bearT.toFixed(P)}</div>
+      <div style="color:var(--tx3)">Conf: ${first.conf}%→${last.conf}%</div>`;
+  }
 
   // Fibonacci
   const hi=G.sHi, lo=G.sLo, rng=hi-lo;
